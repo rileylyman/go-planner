@@ -7,19 +7,30 @@ import (
 	"bufio"
 	"strings"
 	"io/ioutil"
+	"encoding/json"
 )
 
 const dataPath string = ".planner/tasks"
+const jsonPath string = ".planner/tasks.json"
 
-var add string = "add"
-var remove string = "remove"
-var show string = "show"
+var add string 		= "add"
+var remove string 	= "remove"
+var show string 	= "show"
+var export string 	= "export"
 
-var expectedAddArgs = 1
-var expectedRemoveArgs = 1
+var expectedAddArgs 	= 1
+var expectedRemoveArgs 	= 1
+var expectedExportArgs 	= 0
 
 var addCommand = flag.NewFlagSet(add, flag.ExitOnError)
 var removeCommand = flag.NewFlagSet(remove, flag.ExitOnError)
+var exportCommand = flag.NewFlagSet(export, flag.ExitOnError)
+
+type Task struct  {
+	Name string
+	Duedate string
+	Importance string
+}
 
 func main() {
 
@@ -35,8 +46,10 @@ func main() {
 		cmdRemoveTask()
 	case show:
 		cmdShowTasks()
+	case export:
+		cmdExportTask()
 	case "-h":
-		fmt.Println("Valid programs: add, remove, and show. Use planner <program> -h for more info")
+		fmt.Println("Valid programs: add, remove, show, and export. Use planner <program> -h for more info")
 	default:
 		fmt.Println("Invalid argument: ", prog)
 	}
@@ -85,6 +98,39 @@ func cmdRemoveTask() {
 		fmt.Println("Aborting.")
 	}
 
+}
+
+func cmdExportTask() {
+	export_type := exportCommand.String("t", "json", "The type of your exported (default: json)")
+	//exportCommand.parseArgs()
+
+	raw_tasks := strings.Split(getRawTaskString(), ";")
+	var tasks = make([]Task, 0)
+
+	for _, task := range(raw_tasks) {
+		if task == "" {continue;}
+		fields := strings.Split(task, "~")
+
+		if len(fields) == 0 {
+		continue
+		} else if len(fields) !=  3 {
+			fmt.Println("Something went wrong trying to print tasks. The data was \n", getRawTaskString())
+			os.Exit(1)
+		}
+
+		//task := Task{fields[0],fields[1],fields[2]}
+		//fmt.Println(task)
+		tasks = append(tasks, Task{fields[0],fields[1],fields[2]})
+	}
+
+	switch *export_type {
+	case "json":
+		x, _ := json.Marshal(tasks)
+		toWrite := []byte(x)
+		err := ioutil.WriteFile(jsonPath, toWrite, 0644)
+		check(err)
+		fmt.Println(string(x))
+	}
 }
 
 func addTask(taskName, taskDueDate, taskImportance string) {
