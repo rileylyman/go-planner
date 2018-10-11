@@ -2,3 +2,4 @@
 .planner
 *.txt
 tasks
+.DS_Store
